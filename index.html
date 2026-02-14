@@ -233,19 +233,24 @@ function playVideo(url){
 
   player = new YT.Player('player',{
     videoId:id,
-    playerVars:{
+   playerVars:{
   autoplay:1,
   rel:0,
   playsinline:1,
-  modestbranding:1
+  modestbranding:1,
+  mute:1
 },
-    events:{
-      onStateChange: function(e){
-        if(e.data === YT.PlayerState.ENDED){
-          showQuestion();
-        }
-      }
+   events:{
+  onReady:function(e){
+    e.target.mute();       // обязательно для iOS
+    e.target.playVideo();  // принудительный запуск
+  },
+  onStateChange:function(e){
+    if(e.data === YT.PlayerState.ENDED){
+      showQuestion();
     }
+  }
+}
   });
 }
 
