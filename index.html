@@ -6,145 +6,145 @@
 <title>Для тебя</title>
 <style>
 :root{
-  --bg:#2a0014;
-  --bg2:#3b001c;
-  --card:rgba(255, 255, 255, 0.08);
+  --bg1:#2a0014;      /* темный бордовый */
+  --bg2:#4a0022;      /* бордово-розовый */
+  --card:rgba(255,255,255,.10);
   --text:#ffe6f2;
   --muted:#ffb6d5;
-  --accent:#ff2e63;
-  --accent2:#ff6b9e;
-  --ok:#00ffb3;
-  --bad:#ff4d6d;
+  --accent:#ff2e63;   /* красно-розовый */
+  --accent2:#ff6b9e;  /* розовый */
+  --ok:#37d67a;
+  --bad:#ff5c7a;
 }
 
-/* Фон */
 body{
   margin:0;
   font-family:system-ui;
-  background:
-    radial-gradient(1200px 800px at 20% 0%, #ff1f5a33 0%, transparent 60%),
-    radial-gradient(900px 600px at 80% 20%, #ff7eb333 0%, transparent 60%),
-    linear-gradient(160deg, var(--bg), var(--bg2));
   color:var(--text);
   overflow-x:hidden;
+
+  /* Фон: градиенты + повторяющийся паттерн 21+ */
+  background-image:
+    /* мягкие световые пятна */
+    radial-gradient(900px 600px at 20% 0%, rgba(255,46,99,.22) 0%, transparent 60%),
+    radial-gradient(900px 600px at 80% 20%, rgba(255,107,158,.18) 0%, transparent 60%),
+
+    /* паттерн 21+ (мелко, повтор по всей площади) */
+    repeating-linear-gradient(0deg, transparent 0 84px, rgba(255,255,255,.04) 84px 85px),
+    repeating-linear-gradient(90deg, transparent 0 84px, rgba(255,255,255,.04) 84px 85px),
+
+    /* базовый градиент */
+    linear-gradient(160deg, var(--bg1), var(--bg2));
 }
 
-/* Большая фоновая надпись 21+ */
-body::before{
-  content:"21+";
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:22vw;
-  font-weight:900;
-  letter-spacing:10px;
-  color:rgba(255,255,255,0.04);
-  pointer-events:none;
-  z-index:0;
+/* Текстовый паттерн 21+ поверх градиентов (часто, мелко) */
+body{
+  margin:0;
+  font-family:system-ui;
+  color:var(--text);
+  overflow-x:hidden;
+
+  background:
+    /* паттерн 21+ (SVG, повторяется по всей площади) */
+    url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='520' height='520'>\
+<rect width='100%25' height='100%25' fill='transparent'/>\
+<g fill='rgba(255,255,255,0.07)' font-family='system-ui' font-weight='900'>\
+  <text x='20'  y='90'  font-size='64' transform='rotate(-12 20 90)'>21+</text>\
+  <text x='240' y='70'  font-size='46' transform='rotate(9 240 70)'>21+</text>\
+  <text x='120' y='210' font-size='72' transform='rotate(-6 120 210)'>21+</text>\
+  <text x='360' y='190' font-size='58' transform='rotate(14 360 190)'>21+</text>\
+  <text x='40'  y='340' font-size='54' transform='rotate(7 40 340)'>21+</text>\
+  <text x='260' y='320' font-size='80' transform='rotate(-10 260 320)'>21+</text>\
+  <text x='150' y='470' font-size='60' transform='rotate(11 150 470)'>21+</text>\
+  <text x='380' y='470' font-size='44' transform='rotate(-8 380 470)'>21+</text>\
+</g>\
+</svg>") repeat,
+
+    /* световые пятна */
+    radial-gradient(900px 600px at 20% 0%, rgba(255,46,99,.22) 0%, transparent 60%),
+    radial-gradient(900px 600px at 80% 20%, rgba(255,107,158,.18) 0%, transparent 60%),
+
+    /* базовый градиент */
+    linear-gradient(160deg, var(--bg1), var(--bg2));
+
+  background-size: 520px 520px, auto, auto, auto;
 }
 
-/* Контент поверх */
+/* Контент поверх фона */
 .wrap{
   position:relative;
   z-index:1;
-  max-width:920px;
+  max-width:900px;
   margin:0 auto;
   padding:20px;
 }
 
-/* Карточка */
 .card{
   background:var(--card);
-  backdrop-filter:blur(18px);
-  border:1px solid rgba(255,255,255,0.12);
-  border-radius:20px;
-  padding:18px;
-  margin:16px 0;
-  box-shadow:
-    0 0 40px rgba(255,46,99,0.3),
-    0 20px 60px rgba(0,0,0,0.6);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:18px;
+  padding:16px;
+  margin:12px 0;
+  box-shadow:0 18px 55px rgba(0,0,0,.55), 0 0 40px rgba(255,46,99,.16);
 }
 
-/* Видео контейнер 16:9 */
-#player{
-  position: relative;
-  width: 100%;
-  height: 0;
-  padding-top: 56.25%;
-  border-radius: 18px;
-  overflow: hidden;
-  background: #000;
-}
-
-#player iframe{
-  position:absolute;
-  top:0;left:0;
-  width:100% !important;
-  height:100% !important;
-  border:0;
-}
-
-/* Формы */
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .row>*{flex:1}
 
 input,button{
   font:inherit;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.15);
-  padding:14px 16px;
-  background:rgba(255,255,255,0.08);
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.16);
+  padding:12px 14px;
+  background:rgba(255,255,255,.08);
   color:var(--text);
-  transition:all .25s ease;
 }
 
 input:focus{
   outline:none;
-  border-color:var(--accent2);
-  box-shadow:0 0 20px rgba(255,107,158,.5);
+  border-color:rgba(255,107,158,.8);
+  box-shadow:0 0 18px rgba(255,107,158,.35);
 }
 
 button{
   cursor:pointer;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
   border:none;
-  font-weight:600;
-  box-shadow:0 0 20px rgba(255,46,99,.6);
-}
-
-button:hover{
-  transform:translateY(-2px);
-  box-shadow:0 0 30px rgba(255,46,99,.9);
-}
-
-.status{
+  background:linear-gradient(135deg, var(--accent), var(--accent2));
   font-weight:700;
-  margin-top:12px;
-  font-size:16px;
 }
 
+.status{font-weight:700;margin-top:10px}
 .ok{color:var(--ok)}
 .bad{color:var(--bad)}
 
-.small{
-  color:var(--muted);
-  font-size:14px;
+/* Адаптивный видеоплеер 16:9 */
+#player{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:14px;
+  overflow:hidden;
+  background:#000;
 }
 
-#qBlock{display:none;margin-top:16px}
-
-#confetti{
-  position:fixed;
+/* iframe от YouTube занимает весь контейнер */
+#player iframe{
+  position:absolute;
   inset:0;
-  pointer-events:none;
-  display:none;
+  width:100%;
+  height:100%;
+  border:0;
 }
+
+#qBlock{display:none;margin-top:14px}
+#confetti{position:fixed;inset:0;pointer-events:none;display:none}
+.small{color:var(--muted);font-size:13px}
 
 @media (max-width:520px){
   .wrap{padding:14px;}
   .card{padding:14px;}
+  body::before{font-size:18px;letter-spacing:14px;line-height:62px;}
 }
 </style>
 </head>
@@ -155,7 +155,7 @@ button:hover{
 <div class="wrap">
   <div class="card">
     <div id="player"></div>
-<div id="boot" class="small" style="margin-top:10px;opacity:.9"></div>
+
     <div id="qBlock">
       <p id="question"></p>
       <div class="row">
@@ -193,12 +193,7 @@ let cfg;
 let stepIndex = 0;
 let player;
 let attempts = 0;
-const boot = document.getElementById("boot");
 
-function setBoot(msg, kind=""){
-  boot.textContent = msg;
-  boot.style.color = kind==="bad" ? "var(--bad)" : kind==="ok" ? "var(--ok)" : "var(--muted)";
-}
 function extractYouTubeID(url){
   const m1 = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
   const m2 = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
@@ -206,22 +201,11 @@ function extractYouTubeID(url){
 }
 
 function loadYouTubeAPI(){
-  return new Promise((resolve, reject)=>{
+  return new Promise(resolve=>{
     if(window.YT) return resolve();
-
     const tag=document.createElement('script');
     tag.src="https://www.youtube.com/iframe_api";
-
-    const t = setTimeout(()=>reject(new Error("YouTube API timeout")), 12000);
-
-    tag.onload = ()=>{/* onYouTubeIframeAPIReady вызовется отдельно */};
-    tag.onerror = ()=>{ clearTimeout(t); reject(new Error("YouTube API failed to load")); };
-
-    window.onYouTubeIframeAPIReady=()=>{
-      clearTimeout(t);
-      resolve();
-    };
-
+    window.onYouTubeIframeAPIReady=()=>resolve();
     document.body.appendChild(tag);
   });
 }
@@ -233,7 +217,6 @@ function destroyPlayer(){
 }
 
 function playVideo(url){
-    setBoot("Загружаю видео…");
   destroyPlayer();
   document.getElementById("qBlock").style.display="none";
   document.getElementById("status").textContent="";
@@ -346,30 +329,22 @@ function runConfetti(){
 }
 
 (async()=>{
-  try{
-    setBoot("Загружаю данные…");
-
-    const snap = await getDoc(cfgRef);
-    if(!snap.exists()){
-      setBoot("Конфиг не найден. Открой admin.html и нажми Сохранить.", "bad");
-      return;
-    }
-
-    cfg = snap.data();
-    if(!cfg.steps || !cfg.steps.length){
-      setBoot("В конфиге нет шагов.", "bad");
-      return;
-    }
-
-    setBoot("Подключаю плеер…");
-    await loadYouTubeAPI();
-
-    setBoot("Стартую первое видео…", "ok");
-    playVideo(cfg.steps[0].videoUrl);
-
-  } catch(e){
-    setBoot("Ошибка запуска: " + e.message, "bad");
+  const snap = await getDoc(cfgRef);
+  if(!snap.exists()){
+    document.getElementById("status").textContent="Конфиг не найден. Сначала сохрани его в admin.html";
+    document.getElementById("status").className="status bad";
+    return;
   }
+  cfg = snap.data();
+
+  if(!cfg.steps || !cfg.steps.length){
+    document.getElementById("status").textContent="В конфиге нет шагов.";
+    document.getElementById("status").className="status bad";
+    return;
+  }
+
+  await loadYouTubeAPI();
+  playVideo(cfg.steps[0].videoUrl);
 })();
 </script>
 </body>
