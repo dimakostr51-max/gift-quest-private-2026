@@ -155,7 +155,7 @@ button:hover{
 <div class="wrap">
   <div class="card">
     <div id="player"></div>
-
+<div id="boot" class="small" style="margin-top:10px;opacity:.9"></div>
     <div id="qBlock">
       <p id="question"></p>
       <div class="row">
@@ -193,7 +193,12 @@ let cfg;
 let stepIndex = 0;
 let player;
 let attempts = 0;
+const boot = document.getElementById("boot");
 
+function setBoot(msg, kind=""){
+  boot.textContent = msg;
+  boot.style.color = kind==="bad" ? "var(--bad)" : kind==="ok" ? "var(--ok)" : "var(--muted)";
+}
 function extractYouTubeID(url){
   const m1 = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
   const m2 = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
@@ -201,11 +206,22 @@ function extractYouTubeID(url){
 }
 
 function loadYouTubeAPI(){
-  return new Promise(resolve=>{
+  return new Promise((resolve, reject)=>{
     if(window.YT) return resolve();
+
     const tag=document.createElement('script');
     tag.src="https://www.youtube.com/iframe_api";
-    window.onYouTubeIframeAPIReady=()=>resolve();
+
+    const t = setTimeout(()=>reject(new Error("YouTube API timeout")), 12000);
+
+    tag.onload = ()=>{/* onYouTubeIframeAPIReady вызовется отдельно */};
+    tag.onerror = ()=>{ clearTimeout(t); reject(new Error("YouTube API failed to load")); };
+
+    window.onYouTubeIframeAPIReady=()=>{
+      clearTimeout(t);
+      resolve();
+    };
+
     document.body.appendChild(tag);
   });
 }
@@ -217,6 +233,7 @@ function destroyPlayer(){
 }
 
 function playVideo(url){
+    setBoot("Загружаю видео…");
   destroyPlayer();
   document.getElementById("qBlock").style.display="none";
   document.getElementById("status").textContent="";
@@ -329,22 +346,30 @@ function runConfetti(){
 }
 
 (async()=>{
-  const snap = await getDoc(cfgRef);
-  if(!snap.exists()){
-    document.getElementById("status").textContent="Конфиг не найден. Сначала сохрани его в admin.html";
-    document.getElementById("status").className="status bad";
-    return;
-  }
-  cfg = snap.data();
+  try{
+    setBoot("Загружаю данные…");
 
-  if(!cfg.steps || !cfg.steps.length){
-    document.getElementById("status").textContent="В конфиге нет шагов.";
-    document.getElementById("status").className="status bad";
-    return;
-  }
+    const snap = await getDoc(cfgRef);
+    if(!snap.exists()){
+      setBoot("Конфиг не найден. Открой admin.html и нажми Сохранить.", "bad");
+      return;
+    }
 
-  await loadYouTubeAPI();
-  playVideo(cfg.steps[0].videoUrl);
+    cfg = snap.data();
+    if(!cfg.steps || !cfg.steps.length){
+      setBoot("В конфиге нет шагов.", "bad");
+      return;
+    }
+
+    setBoot("Подключаю плеер…");
+    await loadYouTubeAPI();
+
+    setBoot("Стартую первое видео…", "ok");
+    playVideo(cfg.steps[0].videoUrl);
+
+  } catch(e){
+    setBoot("Ошибка запуска: " + e.message, "bad");
+  }
 })();
 </script>
 </body>
