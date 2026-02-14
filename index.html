@@ -4,15 +4,16 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Для тебя</title>
+
 <style>
 :root{
-  --bg1:#2a0014;      /* темный бордовый */
-  --bg2:#4a0022;      /* бордово-розовый */
+  --bg1:#2a0014;
+  --bg2:#4a0022;
   --card:rgba(255,255,255,.10);
   --text:#ffe6f2;
   --muted:#ffb6d5;
-  --accent:#ff2e63;   /* красно-розовый */
-  --accent2:#ff6b9e;  /* розовый */
+  --accent:#ff2e63;
+  --accent2:#ff6b9e;
   --ok:#37d67a;
   --bad:#ff5c7a;
 }
@@ -23,29 +24,7 @@ body{
   color:var(--text);
   overflow-x:hidden;
 
-  /* Фон: градиенты + повторяющийся паттерн 21+ */
-  background-image:
-    /* мягкие световые пятна */
-    radial-gradient(900px 600px at 20% 0%, rgba(255,46,99,.22) 0%, transparent 60%),
-    radial-gradient(900px 600px at 80% 20%, rgba(255,107,158,.18) 0%, transparent 60%),
-
-    /* паттерн 21+ (мелко, повтор по всей площади) */
-    repeating-linear-gradient(0deg, transparent 0 84px, rgba(255,255,255,.04) 84px 85px),
-    repeating-linear-gradient(90deg, transparent 0 84px, rgba(255,255,255,.04) 84px 85px),
-
-    /* базовый градиент */
-    linear-gradient(160deg, var(--bg1), var(--bg2));
-}
-
-/* Текстовый паттерн 21+ поверх градиентов (часто, мелко) */
-body{
-  margin:0;
-  font-family:system-ui;
-  color:var(--text);
-  overflow-x:hidden;
-
   background:
-    /* паттерн 21+ (SVG, повторяется по всей площади) */
     url("data:image/svg+xml;utf8,\
 <svg xmlns='http://www.w3.org/2000/svg' width='520' height='520'>\
 <rect width='100%25' height='100%25' fill='transparent'/>\
@@ -61,17 +40,19 @@ body{
 </g>\
 </svg>") repeat,
 
-    /* световые пятна */
     radial-gradient(900px 600px at 20% 0%, rgba(255,46,99,.22) 0%, transparent 60%),
     radial-gradient(900px 600px at 80% 20%, rgba(255,107,158,.18) 0%, transparent 60%),
-
-    /* базовый градиент */
     linear-gradient(160deg, var(--bg1), var(--bg2));
 
   background-size: 520px 520px, auto, auto, auto;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  animation: bgDrift 22s linear infinite;
+}
+@keyframes bgDrift{
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: 260px 180px, 0 0, 0 0, 0 0; }
 }
 
-/* Контент поверх фона */
 .wrap{
   position:relative;
   z-index:1;
@@ -87,6 +68,14 @@ body{
   padding:16px;
   margin:12px 0;
   box-shadow:0 18px 55px rgba(0,0,0,.55), 0 0 40px rgba(255,46,99,.16);
+  position:relative;
+  overflow:hidden;
+  transform: translateY(0);
+  transition: transform .35s ease, box-shadow .35s ease;
+}
+.card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 22px 60px rgba(0,0,0,.45);
 }
 
 .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -100,11 +89,10 @@ input,button{
   background:rgba(255,255,255,.08);
   color:var(--text);
 }
-
 input:focus{
   outline:none;
   border-color:rgba(255,107,158,.8);
-  box-shadow:0 0 18px rgba(255,107,158,.35);
+  box-shadow: 0 0 0 3px rgba(255,92,122,.22);
 }
 
 button{
@@ -112,13 +100,18 @@ button{
   border:none;
   background:linear-gradient(135deg, var(--accent), var(--accent2));
   font-weight:700;
+  transition: transform .08s ease, filter .2s ease, box-shadow .2s ease;
+  will-change: transform;
 }
+button:hover{ filter: brightness(1.08); }
+button:active{ transform: translateY(1px) scale(.99); }
 
 .status{font-weight:700;margin-top:10px}
 .ok{color:var(--ok)}
 .bad{color:var(--bad)}
+.small{color:var(--muted);font-size:13px}
 
-/* Адаптивный видеоплеер 16:9 */
+/* Плеер */
 #player{
   position:relative;
   width:100%;
@@ -126,9 +119,11 @@ button{
   border-radius:14px;
   overflow:hidden;
   background:#000;
+  transform: translateY(6px);
+  transition: transform .6s ease;
 }
+#player.ready{ transform: translateY(0); }
 
-/* iframe от YouTube занимает весь контейнер */
 #player iframe{
   position:absolute;
   inset:0;
@@ -137,24 +132,166 @@ button{
   border:0;
 }
 
+/* Лоадер поверх плеера */
+#loader{
+  position:absolute;
+  inset: 16px 16px auto 16px;
+  height: calc(56.25% + 0px);
+  border-radius: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(6px);
+  pointer-events:none;
+  opacity:1;
+  transition: opacity .4s ease;
+}
+#loader.hide{ opacity:0; }
+.spinner{
+  width:18px;height:18px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.25);
+  border-top-color: rgba(255,255,255,.85);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg);} }
+
+/* Overlay “Нажми для старта” (нужен для Safari/мобилок) */
+#tapToStart{
+  position:absolute;
+  inset: 16px 16px auto 16px;
+  height: calc(56.25% + 0px);
+  border-radius: 14px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:18px;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(10px);
+}
+#tapToStart.show{ display:flex; }
+#tapToStart .box{
+  max-width:520px;
+}
+#tapToStart .title{
+  font-weight:800;
+  font-size:18px;
+  margin-bottom:8px;
+}
+#tapToStart .desc{
+  opacity:.85;
+  margin-bottom:14px;
+  font-size:14px;
+}
+#tapToStart .btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:220px;
+}
+
+/* Вопрос */
 #qBlock{display:none;margin-top:14px}
+#qBlock.show{ animation: rise .45s ease both; }
+@keyframes rise{
+  from{ opacity:0; transform: translateY(10px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* Конфетти */
 #confetti{position:fixed;inset:0;pointer-events:none;display:none}
-.small{color:var(--muted);font-size:13px}
+
+/* Дисклеймер-модалка */
+#disclaimerModal{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(10px);
+}
+#disclaimerModal.show{ display:flex; }
+#disclaimerCard{
+  width:min(720px, 100%);
+  background: rgba(18,26,41,.92);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:18px;
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+  padding:18px;
+}
+#disclaimerTitle{
+  font-size:18px;
+  font-weight:900;
+  margin:0 0 10px 0;
+}
+#disclaimerText{
+  margin:0;
+  white-space:pre-wrap;
+  line-height:1.35;
+  opacity:.95;
+}
+#disclaimerBtns{
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+}
+#disclaimerBtns button{
+  flex:1;
+}
+#noBtn{
+  background: rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.16);
+}
+#noBtn:hover{ filter: brightness(1.06); }
 
 @media (max-width:520px){
   .wrap{padding:14px;}
   .card{padding:14px;}
-  body::before{font-size:18px;letter-spacing:14px;line-height:62px;}
+  #disclaimerBtns{ flex-direction:column; }
 }
 </style>
 </head>
+
 <body>
+
+<!-- Дисклеймер -->
+<div id="disclaimerModal" aria-modal="true" role="dialog">
+  <div id="disclaimerCard">
+    <div id="disclaimerTitle">Подтверждение</div>
+    <p id="disclaimerText"></p>
+    <div id="disclaimerBtns">
+      <button id="yesBtn">ДА</button>
+      <button id="noBtn">НЕТ</button>
+    </div>
+    <div class="small" style="margin-top:10px;opacity:.85">
+      Если звук не начнётся автоматически — это ограничение браузера. Нажми «ДА», и мы запустим всё корректно.
+    </div>
+  </div>
+</div>
 
 <canvas id="confetti"></canvas>
 
 <div class="wrap">
   <div class="card">
     <div id="player"></div>
+
+    <div id="loader">
+      <div class="spinner"></div>
+      <div class="small">Загружаю видео…</div>
+    </div>
+
+    <div id="tapToStart">
+      <div class="box">
+        <div class="title">Нажми, чтобы стартовать со звуком</div>
+        <div class="desc">Некоторые браузеры блокируют автозапуск видео со звуком. Один тап — и всё включится.</div>
+        <button id="tapBtn" class="btn">СТАРТ</button>
+      </div>
+    </div>
 
     <div id="qBlock">
       <p id="question"></p>
@@ -166,6 +303,8 @@ button{
       <p id="hint" class="small" style="display:none"></p>
       <div id="status" class="status"></div>
     </div>
+
+    <div id="boot" class="small" style="margin-top:10px;opacity:.85"></div>
   </div>
 </div>
 
@@ -174,7 +313,6 @@ import { norm } from "./app.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-// TODO: вставь firebaseConfig
 const firebaseConfig = {
   apiKey: "AIzaSyDlXwYw8SmqQbZuHmLiJa3oLcyeXHRrY",
   authDomain: "gift-quest-fb6ec.firebaseapp.com",
@@ -194,17 +332,39 @@ let stepIndex = 0;
 let player;
 let attempts = 0;
 
+const loader = document.getElementById("loader");
+const playerEl = document.getElementById("player");
+const boot = document.getElementById("boot");
+
+const modal = document.getElementById("disclaimerModal");
+const disclaimerTextEl = document.getElementById("disclaimerText");
+const yesBtn = document.getElementById("yesBtn");
+const noBtn = document.getElementById("noBtn");
+
+const tapOverlay = document.getElementById("tapToStart");
+const tapBtn = document.getElementById("tapBtn");
+
+let started = false;          // чтобы сайт не стартовал до подтверждения
+let lastVideoId = null;       // текущий id, чтобы повторно стартовать по тапу
+
+function setBoot(msg, kind=""){
+  boot.textContent = msg;
+  boot.style.color = kind==="bad" ? "var(--bad)" : kind==="ok" ? "var(--ok)" : "var(--muted)";
+}
+
 function extractYouTubeID(url){
   const m1 = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
   const m2 = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
-  return m1 ? m1[1] : m2 ? m2[1] : null;
+  const m3 = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+  return m1 ? m1[1] : m2 ? m2[1] : m3 ? m3[1] : null;
 }
 
 function loadYouTubeAPI(){
-  return new Promise(resolve=>{
-    if(window.YT) return resolve();
+  return new Promise((resolve, reject)=>{
+    if(window.YT && window.YT.Player) return resolve();
     const tag=document.createElement('script');
     tag.src="https://www.youtube.com/iframe_api";
+    tag.onerror = ()=>reject(new Error("YouTube API failed to load"));
     window.onYouTubeIframeAPIReady=()=>resolve();
     document.body.appendChild(tag);
   });
@@ -213,7 +373,31 @@ function loadYouTubeAPI(){
 function destroyPlayer(){
   try{ if(player && player.destroy) player.destroy(); }catch(e){}
   player = null;
-  document.getElementById("player").innerHTML = "";
+  playerEl.innerHTML = "";
+  playerEl.classList.remove("ready");
+  loader.classList.remove("hide");
+  tapOverlay.classList.remove("show");
+}
+
+function showTapOverlay(){
+  loader.classList.add("hide");
+  playerEl.classList.add("ready");
+  tapOverlay.classList.add("show");
+}
+
+function hideTapOverlay(){
+  tapOverlay.classList.remove("show");
+}
+
+function playCurrentWithSound(){
+  // вызывается только из пользовательского клика (ДА или СТАРТ)
+  if(!player) return;
+  try{
+    player.unMute();
+    player.setVolume(100);
+    player.playVideo();
+  }catch(_){}
+  hideTapOverlay();
 }
 
 function playVideo(url){
@@ -225,44 +409,85 @@ function playVideo(url){
   attempts=0;
 
   const id = extractYouTubeID(url);
+  lastVideoId = id;
+
   if(!id){
     document.getElementById("status").textContent="Ошибка: не могу извлечь YouTube ID из ссылки.";
     document.getElementById("status").className="status bad";
+    setBoot("Ошибка: неверная ссылка на YouTube.", "bad");
     return;
   }
 
+  setBoot("Загружаю плеер…");
+
   player = new YT.Player('player',{
     videoId:id,
-   playerVars:{
-  autoplay:1,
-  rel:0,
-  playsinline:1,
-  modestbranding:1,
-  mute:1
-},
-   events:{
-  onReady:function(e){
-    e.target.mute();       // обязательно для iOS
-    e.target.playVideo();  // принудительный запуск
-  },
-  onStateChange:function(e){
-    if(e.data === YT.PlayerState.ENDED){
-      showQuestion();
+    playerVars:{
+      autoplay:1,
+      rel:0,
+      playsinline:1,
+      modestbranding:1,
+      mute:0 // пытаемся со звуком
+    },
+    events:{
+      onReady:function(e){
+        // Пытаемся автозапуск со звуком.
+        // На мобильных часто будет заблокировано — тогда показываем overlay.
+        try{
+          e.target.unMute();
+          e.target.setVolume(100);
+          const res = e.target.playVideo(); // иногда возвращает Promise-like
+          loader.classList.add("hide");
+          playerEl.classList.add("ready");
+          setBoot("Видео запущено.", "ok");
+
+          // Если браузер заблокировал — плеер останется в state=CUED/UNSTARTED -> покажем overlay чуть позже
+          setTimeout(()=>{
+            try{
+              const st = e.target.getPlayerState();
+              if(st === -1 || st === 5){ // UNSTARTED или CUED
+                showTapOverlay();
+                setBoot("Нужен один тап для старта со звуком (ограничение браузера).", "bad");
+              }
+            }catch(_){}
+          }, 700);
+
+        }catch(err){
+          // Если вообще что-то упало — покажем overlay, чтобы стартовать кликом
+          showTapOverlay();
+          setBoot("Нажми «СТАРТ» для запуска.", "bad");
+        }
+      },
+      onStateChange:function(e){
+        // 0 = ended
+        if(e.data === YT.PlayerState.ENDED){
+          showQuestion();
+        }
+      },
+      onError:function(e){
+        loader.classList.add("hide");
+        playerEl.classList.add("ready");
+        setBoot("Ошибка YouTube: " + e.data, "bad");
+        // часто помогает клик-старт
+        showTapOverlay();
+      }
     }
-  }
-}
   });
 }
 
 function showQuestion(){
   const s = cfg.steps[stepIndex];
   document.getElementById("question").textContent = s.question;
-  document.getElementById("qBlock").style.display="block";
+  const qb = document.getElementById("qBlock");
+  qb.style.display="block";
   if(s.hint){
     document.getElementById("hintBtn").style.display="inline-block";
   } else {
     document.getElementById("hintBtn").style.display="none";
   }
+  qb.classList.remove("show");
+  void qb.offsetWidth;
+  qb.classList.add("show");
   document.getElementById("answer").focus();
 }
 
@@ -296,11 +521,41 @@ document.getElementById("checkBtn").onclick=()=>{
     attempts++;
     document.getElementById("status").textContent="Пока нет";
     document.getElementById("status").className="status bad";
+    // лёгкий shake на ошибке
+    const card = document.querySelector(".card");
+    card.classList.remove("shake");
+    void card.offsetWidth;
+    card.classList.add("shake");
+
     if(attempts>=2 && s.hint){
       document.getElementById("hint").textContent=s.hint;
       document.getElementById("hint").style.display="block";
     }
   }
+};
+
+tapBtn.onclick = ()=>{
+  // пользовательский клик -> можно включить звук/старт
+  playCurrentWithSound();
+};
+
+yesBtn.onclick = ()=>{
+  modal.classList.remove("show");
+  started = true;
+
+  // стартуем первый шаг
+  stepIndex = 0;
+  playVideo(cfg.steps[0].videoUrl);
+
+  // после клика можно попробовать форсировать звук
+  setTimeout(()=>playCurrentWithSound(), 200);
+};
+
+noBtn.onclick = ()=>{
+  // “выкинуть” с сайта: универсально нельзя гарантировать закрытие вкладки.
+  // Делается редирект + попытка закрытия.
+  try{ window.open("", "_self"); window.close(); }catch(_){}
+  location.href = "https://www.google.com";
 };
 
 function runConfetti(){
@@ -334,23 +589,45 @@ function runConfetti(){
 }
 
 (async()=>{
-  const snap = await getDoc(cfgRef);
-  if(!snap.exists()){
-    document.getElementById("status").textContent="Конфиг не найден. Сначала сохрани его в admin.html";
-    document.getElementById("status").className="status bad";
-    return;
-  }
-  cfg = snap.data();
+  try{
+    setBoot("Загружаю конфиг…");
 
-  if(!cfg.steps || !cfg.steps.length){
-    document.getElementById("status").textContent="В конфиге нет шагов.";
-    document.getElementById("status").className="status bad";
-    return;
-  }
+    const snap = await getDoc(cfgRef);
+    if(!snap.exists()){
+      setBoot("Конфиг не найден. Сначала сохрани его в admin.html", "bad");
+      document.getElementById("status").textContent="Конфиг не найден. Сначала сохрани его в admin.html";
+      document.getElementById("status").className="status bad";
+      return;
+    }
+    cfg = snap.data();
 
-  await loadYouTubeAPI();
-  playVideo(cfg.steps[0].videoUrl);
+    if(!cfg.steps || !cfg.steps.length){
+      setBoot("В конфиге нет шагов.", "bad");
+      document.getElementById("status").textContent="В конфиге нет шагов.";
+      document.getElementById("status").className="status bad";
+      return;
+    }
+
+    setBoot("Подключаю YouTube API…");
+    await loadYouTubeAPI();
+    setBoot("Готово. Ожидаю подтверждения…", "ok");
+
+    // Показ дисклеймера (если текст есть)
+    const text = (cfg.disclaimerText || "").trim();
+    if(text){
+      disclaimerTextEl.textContent = text;
+      modal.classList.add("show");
+    } else {
+      // если дисклеймер не задан — запускаем сразу (как раньше)
+      started = true;
+      playVideo(cfg.steps[0].videoUrl);
+    }
+
+  } catch(e){
+    setBoot("Ошибка запуска: " + e.message, "bad");
+  }
 })();
 </script>
+
 </body>
 </html>
