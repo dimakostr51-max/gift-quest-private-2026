@@ -16,6 +16,8 @@
     .ok{color:#37d67a;font-weight:700}
     .bad{color:#ff5c7a;font-weight:700}
     .small{opacity:.8;font-size:13px}
+    h2,h3,h4{margin:0 0 10px 0}
+    label{display:block;margin-top:10px;margin-bottom:6px}
   </style>
 </head>
 <body>
@@ -34,6 +36,13 @@
     </div>
 
     <div class="card">
+      <h3>Дисклеймер</h3>
+      <p class="small">Показывается при открытии сайта. «ДА» — продолжить, «НЕТ» — выйти.</p>
+      <label>Текст дисклеймера</label>
+      <textarea id="disclaimerText" placeholder="Например: Подтвердите, что вам есть двадцать один плюс..."></textarea>
+    </div>
+
+    <div class="card">
       <h3>Шаги</h3>
       <div id="steps"></div>
     </div>
@@ -49,20 +58,18 @@
 
   <script type="module">
     import { sha256Hex } from "./app.js";
-
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    // TODO: вставь firebaseConfig
     const firebaseConfig = {
-  apiKey: "AIzaSyDlXwYw8SmqQbZuHmLiJa3oLcyeXHRrY",
-  authDomain: "gift-quest-fb6ec.firebaseapp.com",
-  projectId: "gift-quest-fb6ec",
-  storageBucket: "gift-quest-fb6ec.firebasestorage.app",
-  messagingSenderId: "469689235633",
-  appId: "1:469689235633:web:395f43a16e1c2124cd0a90",
-  measurementId: "G-Y3R3ZZZL1J"
-};
+      apiKey: "AIzaSyDlXwYw8SmqQbZuHmLiJa3oLcyeXHRrY",
+      authDomain: "gift-quest-fb6ec.firebaseapp.com",
+      projectId: "gift-quest-fb6ec",
+      storageBucket: "gift-quest-fb6ec.firebasestorage.app",
+      messagingSenderId: "469689235633",
+      appId: "1:469689235633:web:395f43a16e1c2124cd0a90",
+      measurementId: "G-Y3R3ZZZL1J"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -114,6 +121,9 @@
 
       $("finalVideo").value = data?.finale?.videoUrl || "";
       $("anim").value = data?.finale?.animation || "confetti";
+
+      // ДИСКЛЕЙМЕР
+      $("disclaimerText").value = data?.disclaimerText || "";
     }
 
     function collectUI(){
@@ -125,6 +135,9 @@
       }));
 
       return {
+        // ДИСКЛЕЙМЕР
+        disclaimerText: $("disclaimerText").value.trim(),
+
         steps,
         finale: {
           videoUrl: $("finalVideo").value.trim(),
