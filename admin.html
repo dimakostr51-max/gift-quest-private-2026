@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin</title>
+  <style>
+    body{margin:0;font-family:system-ui;background:#0b0f17;color:#e7eefc}
+    .wrap{max-width:980px;margin:0 auto;padding:18px}
+    .card{background:#121a29;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin:12px 0}
+    input,textarea,button{width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#0e1524;color:#e7eefc}
+    textarea{min-height:72px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:760px){.row{grid-template-columns:1fr}}
+    button{cursor:pointer;background:#1a2b52}
+    .ok{color:#37d67a;font-weight:700}
+    .bad{color:#ff5c7a;font-weight:700}
+    .small{opacity:.8;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>Админ-панель</h2>
+      <p class="small">Редактируешь шаги → сохраняешь → у неё обновляется.</p>
+
+      <label>Admin key</label>
+      <input id="adminKey" placeholder="Длинная секретная фраза" />
+
+      <button id="loadBtn" style="margin-top:10px">Загрузить текущий конфиг</button>
+      <button id="saveBtn" style="margin-top:10px">Сохранить</button>
+
+      <div id="status" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Шаги</h3>
+      <div id="steps"></div>
+    </div>
+
+    <div class="card">
+      <h3>Финал</h3>
+      <label>Final video URL (YouTube link)</label>
+      <input id="finalVideo" placeholder="https://..." />
+      <label style="margin-top:10px">Animation</label>
+      <input id="anim" placeholder="confetti" value="confetti" />
+    </div>
+  </div>
+
+  <script type="module">
+    import { sha256Hex } from "./app.js";
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // TODO: вставь firebaseConfig
+    const firebaseConfig = {
+  apiKey: "AIzaSyDlXwYw8SmqQbZuHmLiJa3oLcyeXHRrY",
+  authDomain: "gift-quest-fb6ec.firebaseapp.com",
+  projectId: "gift-quest-fb6ec",
+  storageBucket: "gift-quest-fb6ec.firebasestorage.app",
+  messagingSenderId: "469689235633",
+  appId: "1:469689235633:web:395f43a16e1c2124cd0a90",
+  measurementId: "G-Y3R3ZZZL1J"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const cfgRef = doc(db, "public", "config");
+
+    const $ = (id)=>document.getElementById(id);
+    const stepsBox = $("steps");
+    const status = $("status");
+
+    function stepTemplate(i){
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <h4>Шаг ${i+1}</h4>
+        <label>Video URL</label>
+        <input data-k="videoUrl" placeholder="https://..." />
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Question</label>
+            <textarea data-k="question" placeholder="Текст вопроса"></textarea>
+          </div>
+          <div>
+            <label>Answer</label>
+            <textarea data-k="answer" placeholder="Правильный ответ"></textarea>
+          </div>
+        </div>
+        <label style="margin-top:10px">Hint (опционально)</label>
+        <textarea data-k="hint" placeholder="Подсказка"></textarea>
+      `;
+      return div;
+    }
+
+    const stepNodes = [];
+    for(let i=0;i<5;i++){
+      const n = stepTemplate(i);
+      stepNodes.push(n);
+      stepsBox.appendChild(n);
+    }
+
+    function fillUI(data){
+      const steps = data?.steps || [];
+      stepNodes.forEach((node, i)=>{
+        const s = steps[i] || { videoUrl:"", question:"", answer:"", hint:"" };
+        node.querySelector('[data-k="videoUrl"]').value = s.videoUrl || "";
+        node.querySelector('[data-k="question"]').value = s.question || "";
+        node.querySelector('[data-k="answer"]').value = s.answer || "";
+        node.querySelector('[data-k="hint"]').value = s.hint || "";
+      });
+
+      $("finalVideo").value = data?.finale?.videoUrl || "";
+      $("anim").value = data?.finale?.animation || "confetti";
+    }
+
+    function collectUI(){
+      const steps = stepNodes.map(node => ({
+        videoUrl: node.querySelector('[data-k="videoUrl"]').value.trim(),
+        question: node.querySelector('[data-k="question"]').value.trim(),
+        answer: node.querySelector('[data-k="answer"]').value.trim(),
+        hint: node.querySelector('[data-k="hint"]').value.trim(),
+      }));
+
+      return {
+        steps,
+        finale: {
+          videoUrl: $("finalVideo").value.trim(),
+          animation: $("anim").value.trim() || "confetti"
+        }
+      };
+    }
+
+    function setStatus(ok, msg){
+      status.className = ok ? "ok" : "bad";
+      status.textContent = msg;
+    }
+
+    $("loadBtn").onclick = async ()=>{
+      try{
+        const snap = await getDoc(cfgRef);
+        if(!snap.exists()){
+          setStatus(false, "Конфига ещё нет. Заполни и нажми Сохранить.");
+          fillUI({});
+          return;
+        }
+        fillUI(snap.data());
+        setStatus(true, "Конфиг загружен.");
+      } catch(e){
+        setStatus(false, "Ошибка загрузки: " + e.message);
+      }
+    };
+
+    $("saveBtn").onclick = async ()=>{
+      const adminKey = $("adminKey").value.trim();
+      if(!adminKey){
+        setStatus(false, "Введи admin key.");
+        return;
+      }
+
+      const data = collectUI();
+      const adminKeyHash = await sha256Hex(adminKey);
+
+      try{
+        const snap = await getDoc(cfgRef);
+        if(!snap.exists()){
+          await setDoc(cfgRef, {
+            ...data,
+            adminKeyHash
+          });
+          setStatus(true, "Создан первый конфиг.");
+        } else {
+          await updateDoc(cfgRef, {
+            ...data,
+            adminKeyHash
+          });
+          setStatus(true, "Сохранено.");
+        }
+      } catch(e){
+        setStatus(false, "Ошибка сохранения: " + e.message);
+      }
+    };
+  </script>
+</body>
+</html>

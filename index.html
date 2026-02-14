@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Для тебя</title>
+<style>
+:root{--bg:#0b0f17;--card:#121a29;--text:#e7eefc;--muted:#9db0d0;--ok:#37d67a;--bad:#ff5c7a;}
+body{margin:0;font-family:system-ui;background:radial-gradient(1200px 600px at 20% 0%, #172544 0%, var(--bg) 50%);color:var(--text);}
+.wrap{max-width:900px;margin:0 auto;padding:20px;}
+.card{background:rgba(18,26,41,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 16px 40px rgba(0,0,0,.35);}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1}
+input,button{font:inherit;border-radius:12px;border:1px solid rgba(255,255,255,.12);padding:12px 14px;background:#0e1524;color:var(--text);}
+button{cursor:pointer;background:#1a2b52}
+.status{font-weight:700;margin-top:10px}
+.ok{color:#37d67a} .bad{color:#ff5c7a}
+#player{border-radius:14px;overflow:hidden}
+#qBlock{display:none;margin-top:14px}
+#confetti{position:fixed;inset:0;pointer-events:none;display:none}
+.small{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+
+<div class="wrap">
+  <div class="card">
+    <div id="player"></div>
+
+    <div id="qBlock">
+      <p id="question"></p>
+      <div class="row">
+        <input id="answer" placeholder="Ответ"/>
+        <button id="checkBtn">Проверить</button>
+      </div>
+      <button id="hintBtn" style="margin-top:10px;display:none">Подсказка</button>
+      <p id="hint" class="small" style="display:none"></p>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { norm } from "./app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+// TODO: вставь firebaseConfig
+const firebaseConfig = {
+  apiKey: "AIzaSyDlXwYw8SmqQbZuHmLiJa3oLcyeXHRrY",
+  authDomain: "gift-quest-fb6ec.firebaseapp.com",
+  projectId: "gift-quest-fb6ec",
+  storageBucket: "gift-quest-fb6ec.firebasestorage.app",
+  messagingSenderId: "469689235633",
+  appId: "1:469689235633:web:395f43a16e1c2124cd0a90",
+  measurementId: "G-Y3R3ZZZL1J"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const cfgRef = doc(db,"public","config");
+
+let cfg;
+let stepIndex = 0;
+let player;
+let attempts = 0;
+
+function extractYouTubeID(url){
+  const m1 = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+  const m2 = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+  return m1 ? m1[1] : m2 ? m2[1] : null;
+}
+
+function loadYouTubeAPI(){
+  return new Promise(resolve=>{
+    if(window.YT) return resolve();
+    const tag=document.createElement('script');
+    tag.src="https://www.youtube.com/iframe_api";
+    window.onYouTubeIframeAPIReady=()=>resolve();
+    document.body.appendChild(tag);
+  });
+}
+
+function destroyPlayer(){
+  try{ if(player && player.destroy) player.destroy(); }catch(e){}
+  player = null;
+  document.getElementById("player").innerHTML = "";
+}
+
+function playVideo(url){
+  destroyPlayer();
+  document.getElementById("qBlock").style.display="none";
+  document.getElementById("status").textContent="";
+  document.getElementById("answer").value="";
+  document.getElementById("hint").style.display="none";
+  attempts=0;
+
+  const id = extractYouTubeID(url);
+  if(!id){
+    document.getElementById("status").textContent="Ошибка: не могу извлечь YouTube ID из ссылки.";
+    document.getElementById("status").className="status bad";
+    return;
+  }
+
+  player = new YT.Player('player',{
+    videoId:id,
+    playerVars:{autoplay:1,rel:0},
+    events:{
+      onStateChange: function(e){
+        if(e.data === YT.PlayerState.ENDED){
+          showQuestion();
+        }
+      }
+    }
+  });
+}
+
+function showQuestion(){
+  const s = cfg.steps[stepIndex];
+  document.getElementById("question").textContent = s.question;
+  document.getElementById("qBlock").style.display="block";
+  if(s.hint){
+    document.getElementById("hintBtn").style.display="inline-block";
+  } else {
+    document.getElementById("hintBtn").style.display="none";
+  }
+  document.getElementById("answer").focus();
+}
+
+function nextStep(){
+  stepIndex++;
+  if(stepIndex < cfg.steps.length){
+    playVideo(cfg.steps[stepIndex].videoUrl);
+  } else {
+    runConfetti();
+    if(cfg.finale?.videoUrl){
+      setTimeout(()=>playVideo(cfg.finale.videoUrl), 1200);
+    }
+  }
+}
+
+document.getElementById("hintBtn").onclick=()=>{
+  const s = cfg.steps[stepIndex];
+  const h = document.getElementById("hint");
+  h.textContent = s.hint || "";
+  h.style.display = (h.style.display==="none") ? "block" : "none";
+};
+
+document.getElementById("checkBtn").onclick=()=>{
+  const s = cfg.steps[stepIndex];
+  const val = norm(document.getElementById("answer").value);
+  if(val === norm(s.answer)){
+    document.getElementById("status").textContent="Верно";
+    document.getElementById("status").className="status ok";
+    nextStep();
+  } else {
+    attempts++;
+    document.getElementById("status").textContent="Пока нет";
+    document.getElementById("status").className="status bad";
+    if(attempts>=2 && s.hint){
+      document.getElementById("hint").textContent=s.hint;
+      document.getElementById("hint").style.display="block";
+    }
+  }
+};
+
+function runConfetti(){
+  const c=document.getElementById("confetti");
+  const ctx=c.getContext("2d");
+  c.width=window.innerWidth;
+  c.height=window.innerHeight;
+  c.style.display="block";
+
+  const parts=Array.from({length:200}).map(()=>({
+    x:Math.random()*c.width,
+    y:-20,
+    r:2+Math.random()*4,
+    vy:2+Math.random()*4,
+    vx:-1+Math.random()*2
+  }));
+
+  let t=0;
+  function frame(){
+    t++;
+    ctx.clearRect(0,0,c.width,c.height);
+    parts.forEach(p=>{
+      p.x+=p.vx;
+      p.y+=p.vy;
+      ctx.fillRect(p.x,p.y,p.r,p.r);
+    });
+    if(t<180) requestAnimationFrame(frame);
+    else c.style.display="none";
+  }
+  frame();
+}
+
+(async()=>{
+  const snap = await getDoc(cfgRef);
+  if(!snap.exists()){
+    document.getElementById("status").textContent="Конфиг не найден. Сначала сохрани его в admin.html";
+    document.getElementById("status").className="status bad";
+    return;
+  }
+  cfg = snap.data();
+
+  if(!cfg.steps || !cfg.steps.length){
+    document.getElementById("status").textContent="В конфиге нет шагов.";
+    document.getElementById("status").className="status bad";
+    return;
+  }
+
+  await loadYouTubeAPI();
+  playVideo(cfg.steps[0].videoUrl);
+})();
+</script>
+</body>
+</html>
