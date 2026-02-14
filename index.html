@@ -559,33 +559,79 @@ noBtn.onclick = ()=>{
 };
 
 function runConfetti(){
-  const c=document.getElementById("confetti");
-  const ctx=c.getContext("2d");
-  c.width=window.innerWidth;
-  c.height=window.innerHeight;
-  c.style.display="block";
 
-  const parts=Array.from({length:200}).map(()=>({
-    x:Math.random()*c.width,
-    y:-20,
-    r:2+Math.random()*4,
-    vy:2+Math.random()*4,
-    vx:-1+Math.random()*2
+  const c = document.getElementById("confetti");
+  const ctx = c.getContext("2d");
+
+  c.width = window.innerWidth;
+  c.height = window.innerHeight;
+  c.style.display = "block";
+
+  const colors = [
+    "#ff2e63",
+    "#ff6b9e",
+    "#ffe066",
+    "#37d67a",
+    "#ffffff"
+  ];
+
+  const particles = Array.from({length: 600}).map(() => ({
+    x: Math.random() * c.width,
+    y: -20 - Math.random() * 200,
+    size: 4 + Math.random() * 8,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    vx: -3 + Math.random() * 6,
+    vy: 2 + Math.random() * 6,
+    gravity: 0.08 + Math.random() * 0.05,
+    rotation: Math.random() * 360,
+    rotationSpeed: -10 + Math.random() * 20,
+    shape: Math.random() > 0.5 ? "rect" : "circle"
   }));
 
-  let t=0;
-  function frame(){
-    t++;
-    ctx.clearRect(0,0,c.width,c.height);
-    parts.forEach(p=>{
-      p.x+=p.vx;
-      p.y+=p.vy;
-      ctx.fillRect(p.x,p.y,p.r,p.r);
+  let frame = 0;
+  const maxFrames = 1200; // ~7 секунд при 60fps
+
+  function animate(){
+    frame++;
+    ctx.clearRect(0, 0, c.width, c.height);
+
+    particles.forEach(p => {
+
+      p.vy += p.gravity;
+      p.x += p.vx + Math.sin(frame * 0.05) * 0.5;
+      p.y += p.vy;
+      p.rotation += p.rotationSpeed;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.fillStyle = p.color;
+
+      if(p.shape === "rect"){
+        ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size * 0.6);
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size/2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
     });
-    if(t<180) requestAnimationFrame(frame);
-    else c.style.display="none";
+
+    // лёгкое затухание в конце
+    if(frame > maxFrames - 60){
+      c.style.opacity = 1 - (frame - (maxFrames - 60)) / 60;
+    }
+
+    if(frame < maxFrames){
+      requestAnimationFrame(animate);
+    } else {
+      c.style.display = "none";
+      c.style.opacity = 1;
+    }
   }
-  frame();
+
+  animate();
 }
 
 (async()=>{
